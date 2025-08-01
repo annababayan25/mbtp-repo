@@ -36,8 +36,16 @@ This repository houses the web-application for Myrtle Beach Travel Park. We are 
 - In terminal, type and enter: `git clone https://github.com/annababayan25/mbtp-repo.git` (you can always copy the HTTPS link via the Git repository by clicking on the green `Code` button).
 - A project directory called mbtp_repo should automatically be created
 - In terminal, enter: `cd mbtp_repo`
-- In terminal, enter: `code .`
 - Open the cloned repository in VS Code
+
+#### Restore NuGet dependencies 
+dotnet restore
+
+#### Build the project
+dotnet build
+
+#### Run the project
+dotnet run
 
 --- 
 
