@@ -42,14 +42,21 @@ namespace MBTP.Retrieval
                 cmd.CommandText = "dbo.RetrieveOpDeductions";
                 SqlDataAdapter myDA2 = new SqlDataAdapter(cmd);
                 myDA2.Fill(myDS,"Deductions");
-                cmd.CommandText = "dbo.RetrieveBlackoutState";
                 cmd.Parameters.Clear();
                 cmd.Parameters.Add("@StartDate", SqlDbType.Date);
                 cmd.Parameters["@StartDate"].Value = startDate;
                 cmd.Parameters.Add("@EndDate", SqlDbType.Date);
                 cmd.Parameters["@EndDate"].Value = startDate;
-                SqlDataAdapter myDA3 = new SqlDataAdapter(cmd);
-                myDA3.Fill(myDS,"Blackout");
+                cmd.CommandText = "dbo.RetrieveBlackoutState";
+                SqlDataAdapter blackoutDA = new SqlDataAdapter(cmd);
+                blackoutDA.Fill(myDS, "Blackout");
+                if (myDS.Tables.Contains("Blackout"))
+                {
+                    foreach (DataRow row in myDS.Tables["Blackout"].Rows)
+                    {
+                        Console.WriteLine($"Closed: {row["ProfitCenterName"]} - {row["Reason"]} ({row["StartDate"]} to {row["EndDate"]})");
+                    }
+                }
                // Now create a table to hold weather data
                 DataTable WeatherTable = myDS.Tables.Add("Weather");
                 WeatherTable.Columns.Add("Sunrise", typeof(string));

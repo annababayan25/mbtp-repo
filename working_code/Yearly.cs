@@ -138,11 +138,11 @@ namespace MBTP.Retrieval
     public DataSet GetDailyBreakdownData(DateTime date, DateTime fiscalYearStartDate)
 {
     DataSet dailyData = new DataSet();
-    try
-    {
-        using (SqlConnection sqlConn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
-        {
-            sqlConn.Open();
+            try
+            {
+                using (SqlConnection sqlConn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
+                {
+                    sqlConn.Open();
                     using (SqlCommand cmd = new SqlCommand("dbo.GetDailyTotalsDave", sqlConn))
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
@@ -170,6 +170,8 @@ namespace MBTP.Retrieval
                         myDA4 = new SqlDataAdapter(cmd);
                         myDA4.Fill(dailyData, "YTD");
                         cmd.CommandText = "dbo.RetrieveBlackoutState";
+
+                        cmd.CommandText = "dbo.RetrieveBlackoutState";
                         DateTime blackoutStart = new DateTime(date.Year, date.Month, 1);
                         DateTime blackoutEnd = blackoutStart.AddMonths(1).AddDays(-1);
                         cmd.Parameters.Clear();
@@ -177,20 +179,20 @@ namespace MBTP.Retrieval
                         cmd.Parameters.Add("@EndDate", SqlDbType.Date).Value = blackoutEnd;
                         myDA5 = new SqlDataAdapter(cmd);
                         myDA5.Fill(dailyData, "Blackout");
+                    }
+                }
             }
-        }
-    }
-    catch (SqlException sqlEx)
-    {
-        System.Diagnostics.Debug.WriteLine("SQL error: " + sqlEx.Message);
-        throw;
-    }
-    catch (Exception ex)
-    {
-        System.Diagnostics.Debug.WriteLine("General error: " + ex.Message);
-        System.Diagnostics.Debug.WriteLine("Stack Trace: " + ex.StackTrace);
-        throw;
-    }
+            catch (SqlException sqlEx)
+            {
+                System.Diagnostics.Debug.WriteLine("SQL error: " + sqlEx.Message);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("General error: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("Stack Trace: " + ex.StackTrace);
+                throw;
+            }
     return dailyData;
 }
     }

@@ -16,6 +16,7 @@
     <PackageReference Include="Polly" Version="8.5.2" />
     <PackageReference Include="spire" Version="0.14.1" />
     <PackageReference Include="spire.xls" Version="15.4.0" />
+    <PackageReference Include="System.Data.Common" Version="4.3.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
     <PackageReference Include="System.Net.Http.Json" Version="9.0.4" />
     <PackageReference Include="IronPdf.Extensions.Mvc.Core" Version="2025.1.4" />

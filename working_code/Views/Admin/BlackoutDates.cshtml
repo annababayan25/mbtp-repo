@@ -1,0 +1,239 @@
+@model IEnumerable<MBTP.Models.BlackoutDate>
+@{
+    ViewData["Title"] = "Blackout Dates";
+    var locations = ViewBag.ProfitCenters as List<SelectListItem>;
+    var grouped = Model
+        .GroupBy(b => new { b.PCID, b.ProfitCenterName })
+        .OrderBy(g => g.Key.PCID);
+}
+
+<h2>Blackout Dates by Location</h2>
+
+@foreach (var group in grouped)
+{
+    <div class="mb-5">
+        <h3>@group.Key.PCID - @group.Key.ProfitCenterName</h3>
+
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Reason</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in group)
+                {
+                    <tr>
+                        <td>@item.StartDate.ToString("yyyy-MM-dd")</td>
+                        <td>@item.EndDate.ToString("yyyy-MM-dd")</td>
+                        <td>@item.Reason</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary edit-btn"
+                                data-id="@item.BlackoutID"
+                                data-pcid="@item.PCID"
+                                data-start="@item.StartDate.ToString("yyyy-MM-dd")"
+                                data-end="@item.EndDate.ToString("yyyy-MM-dd")"
+                                data-reason="@item.Reason">
+                                Edit
+                            </button>
+
+                            <form asp-action="DeleteBlackout" method="post" style="display:inline;">
+                                <input type="hidden" name="id" value="@item.BlackoutID" />
+                                <button type="submit" class="btn btn-sm btn-danger"
+                                        onclick="return confirm('Are you sure you want to delete this blackout?');">
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<hr />
+
+<h3>Add New Blackout Date</h3>
+
+<form method="post" action="/Admin/AddBlackout" id="addBlackoutForm">
+    <div class="form-group">
+        <label for="PCID">Location</label>
+        <select id="PCID" name="PCID" class="form-control" required>
+            <option value="">Select a location</option>
+            @foreach (var location in locations)
+            {
+                <option value="@location.Value">@location.Value - @location.Text</option>
+            }
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="StartDate">Start Date</label>
+        <input type="date" name="StartDate" class="form-control" required />
+    </div>
+
+    <div class="form-group">
+        <label for="EndDate">End Date</label>
+        <input type="date" name="EndDate" class="form-control" required />
+    </div>
+
+    <div class="form-group">
+        <label for="ReasonDropdown">Reason</label>
+        <select id="ReasonDropdown" class="form-control" required>
+            <option value="">Select a reason</option>
+            <option value="Holiday">Holiday</option>
+            <option value="Weather">Weather</option>
+            <option value="Staff Shortage">Staff Shortage</option>
+            <option value="Low Occupancy">Low Occupancy</option>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Other">Other</option>
+        </select>
+    </div>
+
+    <div class="form-group d-none" id="customReasonGroup">
+        <label for="CustomReason">Please specify reason</label>
+        <input type="text" id="CustomReason" class="form-control" />
+    </div>
+
+    <input type="hidden" name="Reason" id="FinalReason" />
+    <button type="submit" class="btn btn-primary mt-2">Add Blackout</button>
+</form>
+
+<!-- Edit Modal -->
+<div id="editModal" style="display:none; background:#f8f9fa; padding:20px; border:1px solid #ccc; max-width:500px; margin-top:30px;">
+    <h4>Edit Blackout Date</h4>
+    <form id="editForm">
+        <input type="hidden" id="EditBlackoutID" />
+        <div class="form-group">
+            <label>PCID</label>
+            <input type="text" id="EditPCID" class="form-control" readonly />
+        </div>
+        <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" id="EditStartDate" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>End Date</label>
+            <input type="date" id="EditEndDate" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>Reason</label>
+            <input type="text" id="EditReason" class="form-control" />
+        </div>
+        <button type="submit" class="btn btn-success">Save Changes</button>
+        <button type="button" class="btn btn-secondary" onclick="hideEditModal()">Cancel</button>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        const reasonDropdown = document.getElementById('ReasonDropdown');
+        const customReasonGroup = document.getElementById('customReasonGroup');
+        const customReasonInput = document.getElementById('CustomReason');
+        const finalReasonInput = document.getElementById('FinalReason');
+
+        reasonDropdown.addEventListener('change', function () {
+            if (this.value === 'Other') {
+                customReasonGroup.classList.remove('d-none');
+                customReasonInput.setAttribute('required', 'required');
+            } else {
+                customReasonGroup.classList.add('d-none');
+                customReasonInput.removeAttribute('required');
+            }
+        });
+
+        document.getElementById('addBlackoutForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const selectedReason = reasonDropdown.value;
+            const customReason = customReasonInput.value.trim();
+            const finalReason = selectedReason === 'Other' ? customReason : selectedReason;
+
+            if (!finalReason) {
+                alert('Please select or enter a reason.');
+                return;
+            }
+
+            finalReasonInput.value = finalReason;
+
+            const form = e.target;
+
+            const formData = {
+                PCID: form.PCID.value,
+                StartDate: form.StartDate.value,
+                EndDate: form.EndDate.value,
+                Reason: finalReason
+            };
+
+            const response = await fetch('/Admin/AddBlackout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                window.location.reload();
+            } else if (response.status === 409) {
+                alert('This blackout overlaps with an existing entry.');
+            } else {
+                alert('An error occurred while adding the blackout.');
+            }
+        });
+
+        // ========================
+        // Edit Modal Functionality
+        // ========================
+
+        function showEditModal() {
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        function hideEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                document.getElementById('EditBlackoutID').value = this.dataset.id;
+                document.getElementById('EditPCID').value = this.dataset.pcid;
+                document.getElementById('EditStartDate').value = this.dataset.start;
+                document.getElementById('EditEndDate').value = this.dataset.end;
+                document.getElementById('EditReason').value = this.dataset.reason;
+                showEditModal();
+            });
+        });
+
+        document.getElementById('editForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const formData = {
+                BlackoutID: parseInt(document.getElementById('EditBlackoutID').value),
+                PCID: document.getElementById('EditPCID').value,
+                StartDate: document.getElementById('EditStartDate').value,
+                EndDate: document.getElementById('EditEndDate').value,
+                Reason: document.getElementById('EditReason').value
+            };
+
+            const response = await fetch('/Admin/EditBlackout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                alert('Blackout updated successfully.');
+                window.location.reload();
+            } else {
+                alert('Failed to update blackout.');
+            }
+        });
+    </script>
+}

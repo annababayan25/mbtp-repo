@@ -21,6 +21,8 @@ namespace MBTP
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddScoped<ProfitCenterService>();
+            services.AddSingleton<BlackoutService>();
             services.AddSingleton<DailyService>();
             services.AddSingleton<DailyBookingsService>();
             services.AddSingleton<OccupancyService>();
@@ -68,7 +70,7 @@ namespace MBTP
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
+            // app.UseHttpsRedirection();
             app.UseStaticFiles();
 
             app.UseRouting();

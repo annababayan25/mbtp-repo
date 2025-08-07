@@ -43,9 +43,14 @@ namespace MBTP.Controllers
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly AdministrationService _adminActions;
         private readonly RetailService _retailService;
+        private readonly BlackoutService _blackoutService;
+        private readonly ProfitCenterService _profitCenterService;
+
+
 
         public AdminController(ILogger<HomeController> logger, IConfiguration configuration, ICompositeViewEngine viewEngine, AccessLevelsActions accessLevelsActions,
-                                NewBookService newBookService, IHttpContextAccessor httpContextAccessor, AdministrationService adminActions, RetailService retailService)
+                                NewBookService newBookService, IHttpContextAccessor httpContextAccessor, AdministrationService adminActions, RetailService retailService,
+                                BlackoutService blackoutService, ProfitCenterService profitCenterService)
         {
             _viewEngine = viewEngine;
             _configuration = configuration;
@@ -54,6 +59,8 @@ namespace MBTP.Controllers
             _httpContextAccessor = httpContextAccessor;
             _adminActions = adminActions;
             _retailService = retailService;
+            _blackoutService = blackoutService;
+            _profitCenterService = profitCenterService;
         }
         public IActionResult Privacy()
         {
@@ -93,7 +100,7 @@ namespace MBTP.Controllers
                     if (opts.Contains('C')) { POSImports.ReadCoffeeFiles(); }
                     if (opts.Contains('K')) { POSImports.ReadKayakFiles(); }
                     if (opts.Contains('G')) { POSImports.ReadGuestFiles(); }
-//                    if (opts.Contains('M')) { POSImports.ReadSpecialAddonsFile(); }
+                    //                    if (opts.Contains('M')) { POSImports.ReadSpecialAddonsFile(); }
                     if (opts.Contains('S')) { await RetailService.PopulateRetailData(counter); }
                 }
             }
@@ -125,12 +132,83 @@ namespace MBTP.Controllers
             DataSet ActiveAlerts = _adminActions.ReviewDistinctAlerts();
             return View(ActiveAlerts);
         }
-        [HttpPost]
-        public async Task<JsonResult> AddBlackout(string blackoutIdIn)
+
+        //Blackout Dates
+
+        public IActionResult BlackoutDates()
         {
-            bool updateResult = await _adminActions.PostBlackoutDate(blackoutIdIn);
-            return Json(blackoutIdIn);
+            var data = _blackoutService.GetAll();
+            var locations = _profitCenterService.GetAllLocations();
+
+            ViewBag.ProfitCenters = locations.Select(loc => new SelectListItem
+            {
+                Value = loc.PCID.ToString(),
+                Text = loc.Description
+            }).ToList();
+
+            return View(data);
         }
+
+
+        [HttpPost]
+        [Route("Admin/AddBlackout")]
+        public IActionResult AddBlackout([FromBody] BlackoutDate blackout)
+        {
+            if (_blackoutService.HasOverlap(blackout.PCID, blackout.StartDate, blackout.EndDate))
+            {
+                return Conflict("Error: Date range overlaps with an existing entry");
+            }
+            else
+            {
+                _blackoutService.Add(blackout);
+                return RedirectToAction("BlackoutDates");
+            }
+        }
+
+        [HttpPost]
+        [Route("Admin/EditBlackout")]
+        public IActionResult EditBlackout([FromBody] BlackoutDate blackout)
+        {
+
+            _blackoutService.Update(blackout);
+            return RedirectToAction("BlackoutDates");
+
+        }
+
+        [HttpPost]
+        [Route("Admin/DeleteBlackout")]
+        public IActionResult DeleteBlackout([FromBody] BlackoutDate blackout)
+        {
+            _blackoutService.Delete(blackout);
+            return RedirectToAction("BlackoutDates");
+        }
+
+        [HttpGet]
+        [Route("Admin/IsBlackout")]
+        public IActionResult IsBlackout(int PCID, DateTime date)
+        {
+            bool result = _blackoutService.IsBlackout(PCID, date);
+            return Ok(new
+            {
+                PCID,
+                date = date.ToString("yyyy-MM-dd"),
+                isBlackout = result
+            });
+        }
+        
+        /*
+        public IActionResult ViewLogStatus()
+        {
+            var logs = _blackoutDataLogService.GetAllBlackoutLogs();
+            return View(logs);
+        }
+        */
+
     }
 }
+
+        
+
+        
+
 

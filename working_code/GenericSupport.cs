@@ -200,24 +200,24 @@ namespace GenericSupport
         }
         public static bool BlackedOutDate(string dateIn, byte pcidIn)
         {
-//            SqlConnection sqlConn = new System.Data.SqlClient.SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString);
-            var connStr = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build().GetSection("ConnectionStrings")["DefaultConnection"];
-            SqlConnection sqlConn = new SqlConnection(connStr);
-            SqlCommand cmd = new SqlCommand("dbo.F_BlackoutDate", sqlConn)
+            var connStr = new ConfigurationBuilder().AddJsonFile("appsettings.json")
+                            .Build().GetSection("ConnectionStrings")["DefaultConnection"];
+            using (SqlConnection sqlConn = new SqlConnection(connStr))
+            using (SqlCommand cmd = new SqlCommand("dbo.F_BlackoutDate", sqlConn))
             {
-                CommandType = System.Data.CommandType.StoredProcedure
-            };
-            // add input parameter for transaction date
-            cmd.Parameters.Add("@TransDate", SqlDbType.Date);
-            cmd.Parameters["@TransDate"].Value = dateIn;
-            cmd.Parameters.Add("@Result", SqlDbType.Bit);
-            cmd.Parameters["@Result"].Direction = ParameterDirection.ReturnValue;
-            sqlConn.Open();
-            cmd.ExecuteScalar();
-            sqlConn.Close();
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@TransDate", SqlDbType.Date).Value = dateIn;
+                cmd.Parameters.Add("@PCID", SqlDbType.TinyInt).Value = pcidIn;
+                cmd.Parameters.Add("@Result", SqlDbType.Bit).Direction = ParameterDirection.ReturnValue;
 
-            return (bool)cmd.Parameters["@Result"].Value;
+                sqlConn.Open();
+                cmd.ExecuteScalar();
+                sqlConn.Close();
+
+                return (bool)cmd.Parameters["@Result"].Value;
+            }
         }
+
         public static bool AllFilesPresent(int pcIDIn)
         {
             string subDirName;
